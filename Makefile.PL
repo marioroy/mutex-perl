@@ -11,11 +11,12 @@ WriteMakefile(
    ABSTRACT => 'Various locking implementations supporting processes and threads',
    AUTHOR   => 'Mario E. Roy <marioeroy AT gmail DOT com>',
    NAME     => 'Mutex',
-   VERSION  => '1.000',
+   VERSION  => '1.001',
 
    NO_META  => 1,
 
    PREREQ_PM => {
+      'parent'      => 0,
       'strict'      => 0,
       'warnings'    => 0,
       'Carp'        => 0,
@@ -45,19 +46,19 @@ WriteMakefile(
          'provides' => {
             'Mutex' => {
                'file'    => 'lib/Mutex.pm',
-               'version' => '1.000'
+               'version' => '1.001'
             },
             'Mutex::Channel' => {
                'file'    => 'lib/Mutex/Channel.pm',
-               'version' => '1.000'
+               'version' => '1.001'
             },
             'Mutex::Flock' => {
                'file'    => 'lib/Mutex/Flock.pm',
-               'version' => '1.000'
+               'version' => '1.001'
             },
             'Mutex::Util' => {
                'file'    => 'lib/Mutex/Util.pm',
-               'version' => '1.000'
+               'version' => '1.001'
             }
          }
       } ) : () ),

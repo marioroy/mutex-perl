@@ -11,7 +11,7 @@ use warnings;
 
 no warnings qw( threads recursion uninitialized );
 
-our $VERSION = '1.000';
+our $VERSION = '1.001';
 
 ## no critic (BuiltinFunctions::ProhibitStringyEval)
 
@@ -197,7 +197,7 @@ Mutex::Util - Utility functions for Mutex
 
 =head1 VERSION
 
-This document describes Mutex::Util version 1.000
+This document describes Mutex::Util version 1.001
 
 =head1 SYNOPSIS
 
@@ -299,12 +299,10 @@ sockets may be constructed into an array stored inside the hash.
 =head2 sock_ready ( socket, [ timeout ] )
 
 This method applies to the Windows platform only. It blocks until the
-socket contains data. A false value is returned if the timeout is
-reached, and a true value otherwise.
-
-The windows platform sometimes needs this extra step prior to reading
-subsequently. Otherwise an empty socket may stall while other threads
-are spawning threads or threads exiting.
+socket contains data. A false value is returned if the timeout is reached,
+and a true value otherwise. The windows platform sometimes needs this extra
+step prior to reading subsequently. Otherwise an empty socket may stall
+while other threads make new threads or threads exiting.
 
    ## Notify the manager process (barrier-sync begin).
    print {$CMD_W_SOCK} "sync_beg\n";

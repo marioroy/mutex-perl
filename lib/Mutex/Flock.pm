@@ -11,14 +11,14 @@ use warnings;
 
 no warnings qw( threads recursion uninitialized once );
 
-our $VERSION = '1.000';
+our $VERSION = '1.001';
 
 use parent 'Mutex';
 use Fcntl ':flock';
 use Carp ();
 
 my $has_threads = $INC{'threads.pm'} ? 1 : 0;
-my $tid = $has_threads ? threads->tid() : 0;
+my $tid = $has_threads ? threads->tid()  : 0;
 
 sub CLONE {
     $tid = threads->tid() if $has_threads;
@@ -167,7 +167,7 @@ Mutex::Flock - Mutex locking via Fcntl
 
 =head1 VERSION
 
-This document describes Mutex::Flock version 1.000
+This document describes Mutex::Flock version 1.001
 
 =head1 DESCRIPTION
 

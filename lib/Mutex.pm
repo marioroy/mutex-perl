@@ -9,7 +9,7 @@ package Mutex;
 use strict;
 use warnings;
 
-our $VERSION = '1.000';
+our $VERSION = '1.001';
 
 ## no critic (BuiltinFunctions::ProhibitStringyEval)
 ## no critic (TestingAndDebugging::ProhibitNoStrict)
@@ -67,17 +67,9 @@ Mutex - Various locking implementations supporting processes and threads
 
 =head1 VERSION
 
-This document describes Mutex version 1.000
+This document describes Mutex version 1.001
 
 =head1 SYNOPSIS
-
-   {
-       use Mutex;
-
-       ( my $mutex = Mutex->new( path => $0 ) )->lock_exclusive;
-
-       ...
-   }
 
    {
        use threads;
@@ -88,7 +80,6 @@ This document describes Mutex version 1.000
        threads->create('task', $_) for 1..4;
        $_->join for ( threads->list );
    }
-
    {
        use MCE::Hobo;
        use Mutex;
@@ -97,6 +88,13 @@ This document describes Mutex version 1.000
 
        MCE::Hobo->create('task', $_) for 5..8;
        MCE::Hobo->waitall;
+   }
+   {
+       use Mutex;
+
+       ( my $mutex = Mutex->new( path => $0 ) )->lock_exclusive;
+
+       ...
    }
 
    sub task {
@@ -196,7 +194,7 @@ Blocks until obtaining an exclusive lock. A false value is returned
 if the timeout is reached, and a true value otherwise. The default is
 1 second when omitting timeout.
 
-   my $mutex = MCE::Mutex::Flock->new( path => $0 );
+   my $mutex = Mutex->new( path => $0 );
 
    # terminate script if a previous instance is still running
    exit unless $mutex->timedwait( 2 );
@@ -207,7 +205,7 @@ if the timeout is reached, and a true value otherwise. The default is
 
 =head1 REQUIREMENTS
 
-The C<Mutex> module is supported from Perl 5.8.0 onwards.
+Perl 5.8.0 or later.
 
 =head1 AUTHOR
 

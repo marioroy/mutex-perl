@@ -11,7 +11,7 @@ use warnings;
 
 no warnings qw( threads recursion uninitialized once );
 
-our $VERSION = '1.000';
+our $VERSION = '1.001';
 
 use parent 'Mutex';
 use Mutex::Util ();
@@ -111,7 +111,7 @@ Mutex::Channel - Mutex locking via a pipe or socket
 
 =head1 VERSION
 
-This document describes Mutex::Channel version 1.000
+This document describes Mutex::Channel version 1.001
 
 =head1 DESCRIPTION
 
