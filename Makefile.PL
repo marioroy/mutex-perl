@@ -11,18 +11,17 @@ WriteMakefile(
    ABSTRACT => 'Various locking implementations supporting processes and threads',
    AUTHOR   => 'Mario E. Roy <marioeroy AT gmail DOT com>',
    NAME     => 'Mutex',
-   VERSION  => '1.001',
+   VERSION  => '1.002',
 
    NO_META  => 1,
 
    PREREQ_PM => {
-      'parent'      => 0,
-      'strict'      => 0,
-      'warnings'    => 0,
-      'Carp'        => 0,
-      'Fcntl'       => 0,
-      'Socket'      => 0,
-      'Time::HiRes' => 0,
+      'base'     => 0,
+      'strict'   => 0,
+      'warnings' => 0,
+      'Carp'     => 0,
+      'Fcntl'    => 0,
+      'Socket'   => 0
    },
 
    ((!eval { ExtUtils::MakeMaker->VERSION(6.25) } ) ?
@@ -46,19 +45,19 @@ WriteMakefile(
          'provides' => {
             'Mutex' => {
                'file'    => 'lib/Mutex.pm',
-               'version' => '1.001'
+               'version' => '1.002'
             },
             'Mutex::Channel' => {
                'file'    => 'lib/Mutex/Channel.pm',
-               'version' => '1.001'
+               'version' => '1.002'
             },
             'Mutex::Flock' => {
                'file'    => 'lib/Mutex/Flock.pm',
-               'version' => '1.001'
+               'version' => '1.002'
             },
             'Mutex::Util' => {
                'file'    => 'lib/Mutex/Util.pm',
-               'version' => '1.001'
+               'version' => '1.002'
             }
          }
       } ) : () ),

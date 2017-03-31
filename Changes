@@ -1,6 +1,12 @@
 
 Revision history for Perl module Mutex.
 
+1.002 Fri Mar 31 11:00:00 EST 2017
+
+  * Check for EINTR during sysread and syswrite.
+  * Removed unused _sock_ready from Mutex::Util.
+  * Updated documentation.
+
 1.001 Fri Mar 24 03:00:00 EST 2017
 
   * Applied corrections to documentation.

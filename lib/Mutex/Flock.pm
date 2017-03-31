@@ -11,9 +11,9 @@ use warnings;
 
 no warnings qw( threads recursion uninitialized once );
 
-our $VERSION = '1.001';
+our $VERSION = '1.002';
 
-use parent 'Mutex';
+use base 'Mutex';
 use Fcntl ':flock';
 use Carp ();
 
@@ -51,11 +51,14 @@ sub _open {
 ##
 ###############################################################################
 
-my ($id, $prog_name) = (0);
+my ($id, $prog_name, $is_winenv) = (0);
 
-$prog_name =  $0;
-$prog_name =~ s{^.*[\\/]}{}g;
-$prog_name =  'perl' if ($prog_name eq '-e' || $prog_name eq '-');
+BEGIN {
+    $prog_name =  $0;
+    $prog_name =~ s{^.*[\\/]}{}g;
+    $prog_name =  'perl' if ($prog_name eq '-e' || $prog_name eq '-');
+    $is_winenv =  ($^O =~ /mswin|mingw|msys|cygwin/i) ? 1 : 0;
+}
 
 sub new {
     my ($class, %obj) = (@_, impl => 'Flock');
@@ -64,7 +67,14 @@ sub new {
         my ($pid, $tmp_dir, $tmp_file) = ( abs($$) );
 
         if ($ENV{TEMP} && -d $ENV{TEMP} && -w _) {
-            $tmp_dir = $ENV{TEMP};
+            if ($is_winenv) {
+                $tmp_dir  = $ENV{TEMP};
+                $tmp_dir .= ($^O eq 'MSWin32') ? "\\Perl-MCE" : "/Perl-MCE";
+                mkdir $tmp_dir unless (-d $tmp_dir);
+            }
+            else {
+                $tmp_dir = $ENV{TEMP};
+            }
         }
         elsif ($ENV{TMPDIR} && -d $ENV{TMPDIR} && -w _) {
             $tmp_dir = $ENV{TMPDIR};
@@ -167,7 +177,7 @@ Mutex::Flock - Mutex locking via Fcntl
 
 =head1 VERSION
 
-This document describes Mutex::Flock version 1.001
+This document describes Mutex::Flock version 1.002
 
 =head1 DESCRIPTION
 

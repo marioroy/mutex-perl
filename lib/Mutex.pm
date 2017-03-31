@@ -9,7 +9,7 @@ package Mutex;
 use strict;
 use warnings;
 
-our $VERSION = '1.001';
+our $VERSION = '1.002';
 
 ## no critic (BuiltinFunctions::ProhibitStringyEval)
 ## no critic (TestingAndDebugging::ProhibitNoStrict)
@@ -32,8 +32,10 @@ sub new {
         return $pkg->new(%argv);
     }
 
-    Carp::croak("Could not load implementation $pkg: $@\n");
+    Carp::croak("Could not load Mutex implementation $pkg: $@");
 }
+
+## base class methods
 
 sub impl {
     return $_[0]->{'impl'} || 'Not defined';
@@ -67,37 +69,42 @@ Mutex - Various locking implementations supporting processes and threads
 
 =head1 VERSION
 
-This document describes Mutex version 1.001
+This document describes Mutex version 1.002
 
 =head1 SYNOPSIS
 
+   use Mutex;
+
+   my $mutex = Mutex->new;
+
    {
-       use threads;
-       use Mutex;
+       use MCE::Flow max_workers => 4;
 
-       my $mutex = Mutex->new;
+       mce_flow sub {
+           $mutex->lock;
 
-       threads->create('task', $_) for 1..4;
-       $_->join for ( threads->list );
+           # access shared resource
+           my $wid = MCE->wid; MCE->say($wid); sleep 1;
+
+           $mutex->unlock;
+       };
    }
+
    {
        use MCE::Hobo;
-       use Mutex;
 
-       my $mutex = Mutex->new;
-
-       MCE::Hobo->create('task', $_) for 5..8;
+       MCE::Hobo->create('work', $_) for 1..4;
        MCE::Hobo->waitall;
    }
+
    {
-       use Mutex;
+       use threads;
 
-       ( my $mutex = Mutex->new( path => $0 ) )->lock_exclusive;
-
-       ...
+       threads->create('work', $_)   for 5..8;
+       $_->join for ( threads->list );
    }
 
-   sub task {
+   sub work {
        my ($id) = @_;
        $mutex->lock;
 
@@ -110,8 +117,9 @@ This document describes Mutex version 1.001
 
 =head1 DESCRIPTION
 
-This module implements locking methods that can be used to coordinate access
-to shared data from multiple workers spawned as processes or threads.
+This module, a standalone version of L<MCE::Mutex>, implements locking methods
+that can be used to coordinate access to shared data from multiple workers
+spawned as processes or threads.
 
 The inspiration for this module came from reading Mutex for Ruby.
 
@@ -139,15 +147,17 @@ it establishes a C<tempfile> internally including removal on scope exit.
 
 Returns the implementation used for the mutex.
 
-   my $m1 = Mutex->new( );
-   my $m2 = Mutex->new( path => /tmp/my.lock );
-   my $m3 = Mutex->new( impl => "Channel" );
-   my $m4 = Mutex->new( impl => "Flock" );
+   $m1 = Mutex->new( );
+   $m1->impl();   # Channel
 
-   $m1->impl();  # Channel
-   $m2->impl();  # Flock
-   $m3->impl();  # Channel
-   $m4->impl();  # Flock
+   $m2 = Mutex->new( path => /tmp/my.lock );
+   $m2->impl();   # Flock
+
+   $m3 = Mutex->new( impl => "Channel" );
+   $m3->impl();   # Channel
+
+   $m4 = Mutex->new( impl => "Flock" );
+   $m4->impl();   # Flock
 
 =head2 $mutex->lock ( void )
 
@@ -158,6 +168,8 @@ to mutex->lock by the same process or thread is safe. The mutex will remain
 locked until mutex->unlock is called.
 
 The method C<lock_exclusive> is an alias for C<lock>.
+
+   ( my $mutex = Mutex->new( path => $0 ) )->lock_exclusive;
 
 =head2 $mutex->lock_shared ( void )
 
@@ -197,9 +209,8 @@ if the timeout is reached, and a true value otherwise. The default is
    my $mutex = Mutex->new( path => $0 );
 
    # terminate script if a previous instance is still running
-   exit unless $mutex->timedwait( 2 );
 
-   # script
+   exit unless $mutex->timedwait( 2 );
 
    ...
 

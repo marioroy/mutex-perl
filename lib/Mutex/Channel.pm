@@ -11,9 +11,9 @@ use warnings;
 
 no warnings qw( threads recursion uninitialized once );
 
-our $VERSION = '1.001';
+our $VERSION = '1.002';
 
-use parent 'Mutex';
+use base 'Mutex';
 use Mutex::Util ();
 
 my $has_threads = $INC{'threads.pm'} ? 1 : 0;
@@ -28,7 +28,7 @@ sub DESTROY {
 
     $obj->unlock() if $obj->{ $pid };
 
-    if ($obj->{_init} eq $pid) {
+    if ($obj->{'_init_pid'} eq $pid) {
         ($^O eq 'MSWin32')
             ? Mutex::Util::destroy_pipes($obj, qw(_w_sock _r_sock))
             : Mutex::Util::destroy_socks($obj, qw(_w_sock _r_sock));
@@ -45,22 +45,24 @@ sub DESTROY {
 
 sub new {
     my ($class, %obj) = (@_, impl => 'Channel');
-    $obj{_init} = $has_threads ? $$ .'.'. $tid : $$;
+    $obj{'_init_pid'} = $has_threads ? $$ .'.'. $tid : $$;
 
     ($^O eq 'MSWin32')
         ? Mutex::Util::pipe_pair(\%obj, qw(_r_sock _w_sock))
         : Mutex::Util::sock_pair(\%obj, qw(_r_sock _w_sock));
 
-    syswrite($obj{_w_sock}, '0');
+    1 until syswrite($obj{_w_sock}, '0') || ($! && !$!{'EINTR'});
 
     return bless(\%obj, $class);
 }
 
 sub lock {
     my ($pid, $obj) = ($has_threads ? $$ .'.'. $tid : $$, @_);
+    return if $obj->{ $pid };
 
-    sysread($obj->{_r_sock}, my($b), 1), $obj->{ $pid } = 1
-        unless $obj->{ $pid };
+    1 until sysread($obj->{_r_sock}, my($b), 1) || ($! && !$!{'EINTR'});
+
+    $obj->{ $pid } = 1;
 
     return;
 }
@@ -70,9 +72,11 @@ sub lock {
 
 sub unlock {
     my ($pid, $obj) = ($has_threads ? $$ .'.'. $tid : $$, @_);
+    return unless $obj->{ $pid };
 
-    syswrite($obj->{_w_sock}, '0'), $obj->{ $pid } = 0
-        if $obj->{ $pid };
+    1 until syswrite($obj->{_w_sock}, '0') || ($! && !$!{'EINTR'});
+
+    $obj->{ $pid } = 0;
 
     return;
 }
@@ -81,16 +85,19 @@ sub synchronize {
     my ($pid, $obj, $code, @ret) = (
         $has_threads ? $$ .'.'. $tid : $$, shift, shift
     );
+    return unless ref($code) eq 'CODE';
 
-    return if ref($code)ne 'CODE';
-
-    # lock, run, unlock - inlined for performance
-    sysread($obj->{_r_sock}, my($b), 1), $obj->{ $pid } = 1
-        unless $obj->{ $pid };
+    # lock mutex
+    unless ($obj->{ $pid }) {
+        1 until sysread($obj->{_r_sock}, my($b), 1) || ($! && !$!{'EINTR'});
+        $obj->{ $pid } = 1;
+    }
 
     (defined wantarray) ? @ret = $code->(@_) : $code->(@_);
 
-    syswrite($obj->{_w_sock}, '0'), $obj->{ $pid } = 0;
+    # unlock mutex
+    1 until syswrite($obj->{_w_sock}, '0') || ($! && !$!{'EINTR'});
+    $obj->{ $pid } = 0;
 
     return wantarray ? @ret : $ret[-1];
 }
@@ -98,6 +105,8 @@ sub synchronize {
 *enter = \&synchronize;
 
 1;
+
+__END__
 
 ###############################################################################
 ## ----------------------------------------------------------------------------
@@ -111,7 +120,7 @@ Mutex::Channel - Mutex locking via a pipe or socket
 
 =head1 VERSION
 
-This document describes Mutex::Channel version 1.001
+This document describes Mutex::Channel version 1.002
 
 =head1 DESCRIPTION
 

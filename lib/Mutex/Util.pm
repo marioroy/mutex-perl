@@ -11,19 +11,16 @@ use warnings;
 
 no warnings qw( threads recursion uninitialized );
 
-our $VERSION = '1.001';
+our $VERSION = '1.002';
 
 ## no critic (BuiltinFunctions::ProhibitStringyEval)
 
-use Socket qw( PF_UNIX PF_UNSPEC SOCK_STREAM SOL_SOCKET SO_SNDBUF SO_RCVBUF );
-use Time::HiRes qw( sleep time );
+use Socket qw( PF_UNIX PF_UNSPEC SOCK_STREAM );
 
-my ($is_MSWin32, $is_winenv, $zero_bytes);
+my $is_winenv;
 
 BEGIN {
-    $is_MSWin32 = ( $^O eq 'MSWin32' ) ? 1 : 0;
-    $is_winenv  = ( $^O =~ /mswin|mingw|msys|cygwin/i ) ? 1 : 0;
-    $zero_bytes = "\x00\x00\x00\x00";
+    $is_winenv = ( $^O =~ /mswin|mingw|msys|cygwin/i ) ? 1 : 0;
 }
 
 ###############################################################################
@@ -117,18 +114,11 @@ sub sock_pair {
 
     my ($obj, $r_sock, $w_sock, $i) = @_;
 
-    my $size = 16384; local $!;
+    local $!;
 
     if (defined $i) {
         socketpair( $obj->{$r_sock}[$i], $obj->{$w_sock}[$i],
             PF_UNIX, SOCK_STREAM, PF_UNSPEC ) or die "socketpair: $!\n";
-
-        if ($^O ne 'aix' && $^O ne 'linux') {
-            setsockopt($obj->{$r_sock}[$i], SOL_SOCKET, SO_SNDBUF, int $size);
-            setsockopt($obj->{$r_sock}[$i], SOL_SOCKET, SO_RCVBUF, int $size);
-            setsockopt($obj->{$w_sock}[$i], SOL_SOCKET, SO_SNDBUF, int $size);
-            setsockopt($obj->{$w_sock}[$i], SOL_SOCKET, SO_RCVBUF, int $size);
-        }
 
         # IO::Handle->autoflush not available in older Perl.
         select(( select($obj->{$w_sock}[$i]), $| = 1 )[0]);
@@ -138,47 +128,11 @@ sub sock_pair {
         socketpair( $obj->{$r_sock}, $obj->{$w_sock},
             PF_UNIX, SOCK_STREAM, PF_UNSPEC ) or die "socketpair: $!\n";
 
-        if ($^O ne 'aix' && $^O ne 'linux') {
-            setsockopt($obj->{$r_sock}, SOL_SOCKET, SO_SNDBUF, int $size);
-            setsockopt($obj->{$r_sock}, SOL_SOCKET, SO_RCVBUF, int $size);
-            setsockopt($obj->{$w_sock}, SOL_SOCKET, SO_SNDBUF, int $size);
-            setsockopt($obj->{$w_sock}, SOL_SOCKET, SO_RCVBUF, int $size);
-        }
-
         select(( select($obj->{$w_sock}), $| = 1 )[0]); # Ditto.
         select(( select($obj->{$r_sock}), $| = 1 )[0]);
     }
 
     return;
-}
-
-sub sock_ready {
-
-    return 1 unless $is_MSWin32;
-
-    my ($socket, $timeout) = @_;
-
-    my $val_bytes = "\x00\x00\x00\x00";
-    my $ptr_bytes = unpack( 'I', pack('P', $val_bytes) );
-    my ($count, $start) = (1, time);
-
-    $timeout += time if $timeout;
-
-    while (1) {
-        # MSWin32 FIONREAD
-        ioctl($socket, 0x4004667f, $ptr_bytes);
-
-        return '' if $val_bytes ne $zero_bytes;
-        return  1 if $timeout && time > $timeout;
-
-        if ($count) {
-            # delay after a while to not consume a CPU core
-            $count = 0 if ++$count % 50 == 0 && time - $start > 0.005;
-            next;
-        }
-
-        sleep 0.030;
-    }
 }
 
 1;
@@ -197,7 +151,7 @@ Mutex::Util - Utility functions for Mutex
 
 =head1 VERSION
 
-This document describes Mutex::Util version 1.001
+This document describes Mutex::Util version 1.002
 
 =head1 SYNOPSIS
 
@@ -295,27 +249,6 @@ sockets may be constructed into an array stored inside the hash.
 
    $hashref->{_r_sock}[0];
    $hashref->{_w_sock}[0];
-
-=head2 sock_ready ( socket, [ timeout ] )
-
-This method applies to the Windows platform only. It blocks until the
-socket contains data. A false value is returned if the timeout is reached,
-and a true value otherwise. The windows platform sometimes needs this extra
-step prior to reading subsequently. Otherwise an empty socket may stall
-while other threads make new threads or threads exiting.
-
-   ## Notify the manager process (barrier-sync begin).
-   print {$CMD_W_SOCK} "sync_beg\n";
-
-   ## Wait until all participating workers have synced.
-   Mutex::Util::sock_ready($BSB_R_SOCK) if $is_MSWin32;  # important
-   sysread $BSB_R_SOCK, $buf, 1;
-
-   ## Notify the manager process (barrier-sync end).
-   print {$CMD_W_SOCK} "sync_end\n";
-
-   ## Wait until all participating workers have un-synced.
-   sysread $BSE_R_SOCK, $buf, 1;
 
 =head1 AUTHOR
 
