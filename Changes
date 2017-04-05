@@ -1,6 +1,11 @@
 
 Revision history for Perl module Mutex.
 
+1.003 Wed Apr 05 01:30:00 EST 2017
+
+  * Updated Mutex to not croak when running Perl in taint mode via perl -T.
+    Failing -T was Mutex::Util.
+
 1.002 Fri Mar 31 11:00:00 EST 2017
 
   * Check for EINTR during sysread and syswrite.

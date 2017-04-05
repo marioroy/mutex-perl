@@ -11,7 +11,7 @@ use warnings;
 
 no warnings qw( threads recursion uninitialized );
 
-our $VERSION = '1.002';
+our $VERSION = '1.003';
 
 ## no critic (BuiltinFunctions::ProhibitStringyEval)
 
@@ -94,6 +94,9 @@ sub pipe_pair {
     local $!;
 
     if (defined $i) {
+        # remove tainted'ness
+        ($i) = $i =~ /(.*)/;
+
         pipe($obj->{$r_sock}[$i], $obj->{$w_sock}[$i])
             or die "pipe: $!\n";
 
@@ -117,6 +120,9 @@ sub sock_pair {
     local $!;
 
     if (defined $i) {
+        # remove tainted'ness
+        ($i) = $i =~ /(.*)/;
+
         socketpair( $obj->{$r_sock}[$i], $obj->{$w_sock}[$i],
             PF_UNIX, SOCK_STREAM, PF_UNSPEC ) or die "socketpair: $!\n";
 
@@ -151,7 +157,7 @@ Mutex::Util - Utility functions for Mutex
 
 =head1 VERSION
 
-This document describes Mutex::Util version 1.002
+This document describes Mutex::Util version 1.003
 
 =head1 SYNOPSIS
 
@@ -175,7 +181,7 @@ This document describes Mutex::Util version 1.002
 
    sub new {
        my ($class, %obj) = @_;
-       $obj{_init} = $has_threads ? $$ .'.'. $tid : $$;
+       $obj{_init_pid} = $has_threads ? $$ .'.'. $tid : $$;
 
        ($^O eq 'MSWin32')
            ? Mutex::Util::pipe_pair(\%obj, qw(_r_sock _w_sock))
@@ -189,7 +195,7 @@ This document describes Mutex::Util version 1.002
    sub DESTROY {
        my ($pid, $obj) = ($has_threads ? $$ .'.'. $tid : $$, @_);
 
-       if ($obj->{_init} eq $pid) {
+       if ($obj->{_init_pid} eq $pid) {
            ($^O eq 'MSWin32')
                ? Mutex::Util::destroy_pipes($obj, qw(_w_sock _r_sock))
                : Mutex::Util::destroy_socks($obj, qw(_w_sock _r_sock));
