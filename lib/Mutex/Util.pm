@@ -11,7 +11,7 @@ use warnings;
 
 no warnings qw( threads recursion uninitialized );
 
-our $VERSION = '1.003';
+our $VERSION = '1.004';
 
 ## no critic (BuiltinFunctions::ProhibitStringyEval)
 
@@ -41,12 +41,12 @@ sub destroy_pipes {
         if (ref $obj->{$p} eq 'ARRAY') {
             for my $i (0 .. @{ $obj->{$p} } - 1) {
                 next unless (defined $obj->{$p}[$i]);
-                close $obj->{$p}[$i];
+                close $obj->{$p}[$i] if (fileno $obj->{$p}[$i]);
                 undef $obj->{$p}[$i];
             }
         }
         else {
-            close $obj->{$p};
+            close $obj->{$p} if (fileno $obj->{$p});
             undef $obj->{$p};
         }
     }
@@ -69,8 +69,8 @@ sub destroy_socks {
                 if (fileno $obj->{$p}[$i]) {
                     syswrite($obj->{$p}[$i], '0') if $is_winenv;
                     eval q{ CORE::shutdown($obj->{$p}[$i], 2) };
+                    close $obj->{$p}[$i];
                 }
-                close $obj->{$p}[$i];
                 undef $obj->{$p}[$i];
             }
         }
@@ -78,8 +78,8 @@ sub destroy_socks {
             if (fileno $obj->{$p}) {
                 syswrite($obj->{$p}, '0') if $is_winenv;
                 eval q{ CORE::shutdown($obj->{$p}, 2) };
+                close $obj->{$p};
             }
-            close $obj->{$p};
             undef $obj->{$p};
         }
     }
@@ -157,7 +157,7 @@ Mutex::Util - Utility functions for Mutex
 
 =head1 VERSION
 
-This document describes Mutex::Util version 1.003
+This document describes Mutex::Util version 1.004
 
 =head1 SYNOPSIS
 

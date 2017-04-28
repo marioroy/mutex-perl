@@ -9,28 +9,26 @@ package Mutex;
 use strict;
 use warnings;
 
-our $VERSION = '1.003';
+our $VERSION = '1.004';
 
 ## no critic (BuiltinFunctions::ProhibitStringyEval)
 ## no critic (TestingAndDebugging::ProhibitNoStrict)
 
-use Carp ();
-
 sub new {
-    my $pkg; my ($class, %argv) = @_;
+    my ($class, %argv) = @_;
 
-    if (defined $argv{'impl'}) {
-        $pkg = $argv{'impl'};
-    } else {
-        $pkg = defined $argv{'path'} ? 'Flock' : 'Channel';
-    }
+    my $pkg = (defined $argv{'impl'})
+        ? $argv{'impl'} : (defined $argv{'path'}) ? 'Flock' : 'Channel';
 
-    if (eval "require Mutex::$pkg; 1") {
-        no strict 'refs';
-        $pkg = 'Mutex::'.$pkg;
+    $pkg = ucfirst( lc $pkg );
+
+    if ($INC{"Mutex/$pkg.pm"} || eval "require Mutex::$pkg; 1") {
+        no strict 'refs'; $pkg = 'Mutex::'.$pkg;
 
         return $pkg->new(%argv);
     }
+
+    require Carp unless $INC{'Carp.pm'};
 
     Carp::croak("Could not load Mutex implementation $pkg: $@");
 }
@@ -69,7 +67,7 @@ Mutex - Various locking implementations supporting processes and threads
 
 =head1 VERSION
 
-This document describes Mutex version 1.003
+This document describes Mutex version 1.004
 
 =head1 SYNOPSIS
 
