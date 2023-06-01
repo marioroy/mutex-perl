@@ -11,7 +11,7 @@ use warnings;
 
 no warnings qw( threads recursion uninitialized once );
 
-our $VERSION = '1.007';
+our $VERSION = '1.008';
 
 use base 'Mutex';
 use Mutex::Util;
@@ -114,14 +114,15 @@ sub timedwait {
     local $@; my $ret = '';
 
     eval {
-        local $SIG{ALRM} = sub { die "alarm clock restart\n" };
+        local $SIG{ALRM} = sub { alarm 0; die "alarm clock restart\n" };
         alarm $timeout unless $is_MSWin32;
 
         die "alarm clock restart\n"
             if $is_MSWin32 && Mutex::Util::_sock_ready($obj->{_r_sock}, $timeout);
 
-        $obj->lock_exclusive, $ret = 1;
-        alarm 0 unless $is_MSWin32;
+        (!$is_MSWin32)
+            ? ($obj->lock_exclusive, $ret = 1, alarm(0))
+            : ($obj->lock_exclusive, $ret = 1);
     };
 
     alarm 0 unless $is_MSWin32;
@@ -145,7 +146,7 @@ Mutex::Channel - Mutex locking via a pipe or socket
 
 =head1 VERSION
 
-This document describes Mutex::Channel version 1.007
+This document describes Mutex::Channel version 1.008
 
 =head1 DESCRIPTION
 
