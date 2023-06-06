@@ -11,7 +11,7 @@ use warnings;
 
 no warnings qw( threads recursion uninitialized );
 
-our $VERSION = '1.008';
+our $VERSION = '1.009';
 
 ## no critic (BuiltinFunctions::ProhibitStringyEval)
 
@@ -153,7 +153,7 @@ sub _sock_ready {
 
       # delay after a while to not consume a CPU core
       sleep(0.015), next if $delay;
-      $delay = 1 if time - $start > 0.015;
+      $delay = 1 if time - $start > 0.030;
    }
 }
 
@@ -183,7 +183,7 @@ Mutex::Util - Utility functions for Mutex
 
 =head1 VERSION
 
-This document describes Mutex::Util version 1.008
+This document describes Mutex::Util version 1.009
 
 =head1 SYNOPSIS
 
