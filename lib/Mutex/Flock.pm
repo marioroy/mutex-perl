@@ -157,15 +157,15 @@ sub unlock {
 
 sub synchronize {
     my ($pid, $obj, $code) = ($tid ? $$ .'.'. $tid : $$, shift, shift);
-    my (@ret, $guard);
+    my (@ret);
 
     return unless ref($code) eq 'CODE';
 
     $obj->_open() unless exists $obj->{ $pid };
 
     # lock, run, unlock - inlined for performance
+    my $guard = bless([ $pid, $obj ], Mutex::Flock::_guard::);
     unless ($obj->{ $pid }) {
-        $guard = bless([ $pid, $obj ], Mutex::Flock::_guard::);
         CORE::flock ($obj->{_fh}, LOCK_EX), $obj->{ $pid } = 1;
     }
     (defined wantarray)

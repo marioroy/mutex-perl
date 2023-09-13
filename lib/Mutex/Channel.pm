@@ -100,13 +100,13 @@ sub unlock {
 
 sub synchronize {
     my ($pid, $obj, $code) = ($tid ? $$ .'.'. $tid : $$, shift, shift);
-    my (@ret, $b, $guard);
+    my (@ret, $b);
 
     return unless ref($code) eq 'CODE';
 
     # lock, run, unlock - inlined for performance
+    my $guard = bless([ $pid, $obj ], Mutex::Channel::_guard::);
     unless ($obj->{ $pid }) {
-        $guard = bless([ $pid, $obj ], Mutex::Channel::_guard::);
         CORE::lock($obj->{_t_lock}), Mutex::Util::_sock_ready($obj->{_r_sock})
             if $is_MSWin32;
         Mutex::Util::_sysread($obj->{_r_sock}, $b, 1), $obj->{ $pid } = 1;
