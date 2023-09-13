@@ -9,7 +9,7 @@ package Mutex;
 use strict;
 use warnings;
 
-our $VERSION = '1.010';
+our $VERSION = '1.011';
 
 ## no critic (BuiltinFunctions::ProhibitStringyEval)
 ## no critic (TestingAndDebugging::ProhibitNoStrict)
@@ -54,7 +54,7 @@ Mutex - Various locking implementations supporting processes and threads
 
 =head1 VERSION
 
-This document describes Mutex version 1.010
+This document describes Mutex version 1.011
 
 =head1 SYNOPSIS
 

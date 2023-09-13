@@ -6,7 +6,7 @@ Mutex - Various locking implementations supporting processes and threads
 
 =head1 VERSION
 
-This document describes Mutex version 1.010
+This document describes Mutex version 1.011
 
 =head1 SYNOPSIS
 
