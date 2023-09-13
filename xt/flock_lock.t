@@ -17,7 +17,7 @@ sub task1 {
     $mutex->unlock;
 }
 sub task2 {
-    my $guard = $mutex->lock_exclusive;
+    my $guard = $mutex->guard_lock;
     sleep 1;
 }
 
