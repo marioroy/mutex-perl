@@ -11,7 +11,7 @@ use warnings;
 
 no warnings qw( threads recursion uninitialized once );
 
-our $VERSION = '1.009';
+our $VERSION = '1.010';
 
 use if $^O eq 'MSWin32', 'threads';
 use if $^O eq 'MSWin32', 'threads::shared';
@@ -163,7 +163,7 @@ Mutex::Channel - Mutex locking via a pipe or socket
 
 =head1 VERSION
 
-This document describes Mutex::Channel version 1.009
+This document describes Mutex::Channel version 1.010
 
 =head1 DESCRIPTION
 
