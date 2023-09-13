@@ -166,6 +166,8 @@ For non-Fcntl implementations, C<lock_shared> is an alias for C<lock>.
 This method calls C<lock> and returns a guard object. When the guard object is
 destroyed, it automatically calls C<unlock>.
 
+Current API available since 1.010.
+
 =head2 $mutex->unlock ( void )
 
 Releases the lock. A held lock by an exiting process or thread is released
