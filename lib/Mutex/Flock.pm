@@ -24,9 +24,15 @@ sub CLONE {
     $tid = threads->tid() if $INC{'threads.pm'};
 }
 
+sub Mutex::Flock::_guard::DESTROY {
+    my ($pid, $obj) = @{ $_[0] };
+    CORE::flock ($obj->{_fh}, LOCK_UN), $obj->{ $pid } = 0 if $obj->{ $pid };
+
+    return;
+}
+
 sub DESTROY {
     my ($pid, $obj) = ($tid ? $$ .'.'. $tid : $$, @_);
-
     $obj->unlock(), close(delete $obj->{_fh}) if $obj->{ $pid };
     unlink $obj->{path} if ($obj->{_init} && $obj->{_init} eq $pid);
 
@@ -123,6 +129,11 @@ sub lock {
     return;
 }
 
+sub guard_lock {
+    &lock(@_);
+    bless([ $tid ? $$ .'.'. $tid : $$, $_[0] ], Mutex::Flock::_guard::);
+}
+
 *lock_exclusive = \&lock;
 
 sub lock_shared {
@@ -146,21 +157,20 @@ sub unlock {
 
 sub synchronize {
     my ($pid, $obj, $code) = ($tid ? $$ .'.'. $tid : $$, shift, shift);
-    my (@ret);
+    my (@ret, $guard);
 
     return unless ref($code) eq 'CODE';
 
     $obj->_open() unless exists $obj->{ $pid };
 
     # lock, run, unlock - inlined for performance
-    CORE::flock ($obj->{_fh}, LOCK_EX), $obj->{ $pid } = 1
-        unless $obj->{ $pid };
-
+    unless ($obj->{ $pid }) {
+        $guard = bless([ $pid, $obj ], Mutex::Flock::_guard::);
+        CORE::flock ($obj->{_fh}, LOCK_EX), $obj->{ $pid } = 1;
+    }
     (defined wantarray)
       ? @ret = wantarray ? $code->(@_) : scalar $code->(@_)
       : $code->(@_);
-
-    CORE::flock ($obj->{_fh}, LOCK_UN), $obj->{ $pid } = 0;
 
     return wantarray ? @ret : $ret[-1];
 }
@@ -218,6 +228,8 @@ The API is described in L<Mutex>.
 =item lock_exclusive
 
 =item lock_shared
+
+=item guard_lock
 
 =item unlock
 

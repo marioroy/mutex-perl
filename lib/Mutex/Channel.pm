@@ -29,9 +29,15 @@ sub CLONE {
     $tid = threads->tid if $INC{'threads.pm'};
 }
 
+sub Mutex::Channel::_guard::DESTROY {
+    my ($pid, $obj) = @{ $_[0] };
+    CORE::syswrite($obj->{_w_sock}, '0'), $obj->{ $pid } = 0 if $obj->{ $pid };
+
+    return;
+}
+
 sub DESTROY {
     my ($pid, $obj) = ($tid ? $$ .'.'. $tid : $$, @_);
-
     CORE::syswrite($obj->{_w_sock}, '0'), $obj->{ $pid } = 0 if $obj->{ $pid };
 
     if ( $obj->{_init_pid} eq $pid ) {
@@ -66,12 +72,18 @@ sub new {
 sub lock {
     my ($pid, $obj) = ($tid ? $$ .'.'. $tid : $$, shift);
 
-    CORE::lock($obj->{_t_lock}), Mutex::Util::_sock_ready($obj->{_r_sock})
-        if $is_MSWin32;
-    Mutex::Util::_sysread($obj->{_r_sock}, my($b), 1), $obj->{ $pid } = 1
-        unless $obj->{ $pid };
+    unless ($obj->{ $pid }) {
+        CORE::lock($obj->{_t_lock}), Mutex::Util::_sock_ready($obj->{_r_sock})
+            if $is_MSWin32;
+        Mutex::Util::_sysread($obj->{_r_sock}, my($b), 1), $obj->{ $pid } = 1;
+    }
 
     return;
+}
+
+sub guard_lock {
+    &lock(@_);
+    bless([ $tid ? $$ .'.'. $tid : $$, $_[0] ], Mutex::Channel::_guard::);
 }
 
 *lock_exclusive = \&lock;
@@ -88,21 +100,20 @@ sub unlock {
 
 sub synchronize {
     my ($pid, $obj, $code) = ($tid ? $$ .'.'. $tid : $$, shift, shift);
-    my (@ret, $b);
+    my (@ret, $b, $guard);
 
     return unless ref($code) eq 'CODE';
 
     # lock, run, unlock - inlined for performance
-    CORE::lock($obj->{_t_lock}), Mutex::Util::_sock_ready($obj->{_r_sock})
-        if $is_MSWin32;
-    Mutex::Util::_sysread($obj->{_r_sock}, $b, 1), $obj->{ $pid } = 1
-        unless $obj->{ $pid };
-
+    unless ($obj->{ $pid }) {
+        $guard = bless([ $pid, $obj ], Mutex::Channel::_guard::);
+        CORE::lock($obj->{_t_lock}), Mutex::Util::_sock_ready($obj->{_r_sock})
+            if $is_MSWin32;
+        Mutex::Util::_sysread($obj->{_r_sock}, $b, 1), $obj->{ $pid } = 1;
+    }
     (defined wantarray)
         ? @ret = wantarray ? $code->(@_) : scalar $code->(@_)
         : $code->(@_);
-
-    CORE::syswrite($obj->{_w_sock}, '0'), $obj->{ $pid } = 0;
 
     return wantarray ? @ret : $ret[-1];
 }
@@ -169,6 +180,8 @@ The API is described in L<Mutex>.
 =item lock_exclusive
 
 =item lock_shared
+
+=item guard_lock
 
 =item unlock
 

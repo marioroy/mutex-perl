@@ -161,6 +161,11 @@ The method C<lock_exclusive> is an alias for C<lock>.
 Like C<lock_exclusive>, but attempts to grab a shared lock instead.
 For non-Fcntl implementations, C<lock_shared> is an alias for C<lock>.
 
+=head2 $guard = $mutex->guard_lock ( void )
+
+This method calls C<lock> and returns a guard object. When the guard object is
+destroyed, it automatically calls C<unlock>.
+
 =head2 $mutex->unlock ( void )
 
 Releases the lock. A held lock by an exiting process or thread is released
